@@ -1,0 +1,83 @@
+
+##Loading and preprocessing the data
+
+library(ggplot2)
+activityData <- read.csv("./data/activity.csv")
+summary(activityData)
+
+##What is mean total number of steps taken per day?
+
+  #Calculate the total number of steps taken per day
+stepsPerDay <- aggregate(steps ~ date, activityData, sum, na.rm=TRUE)
+  #histogram of the total number of steps taken each day
+png("hist1.png")
+hist(stepsPerDay$steps)
+dev.off()
+  #Calculate and report the mean and median of the total number of steps taken per day
+meanStepsPerDay <- mean(stepsPerDay$steps)
+medianStepsPerDay <- median(stepsPerDay$steps)
+
+##What is the average daily activity pattern?
+
+  #Make a time series plot (i.e. 𝚝𝚢𝚙𝚎 = “𝚕”) of the 5-minute 
+stepsPerInterval<-aggregate(steps~interval, data=activityData, mean, na.rm=TRUE)
+png("time_serie_plot.png")
+plot(steps~interval, data=stepsPerInterval, type="l")
+dev.off()
+  #Which 5-minute interval, on average across all the days in the dataset
+intervalWithMaxNbSteps <- stepsPerInterval[which.max(stepsPerInterval$steps),]$interval
+intervalWithMaxNbSteps
+
+##Imputing missing values
+
+  #Calculate and report the total number of missing values in the dataset
+totalValuesMissings <- sum(is.na(activityData$steps))
+  #Devise a strategy for filling in all of the missing values in the dataset.
+getMeanStepsPerInterval<-function(interval){
+  stepsPerInterval[stepsPerInterval$interval==interval,]$steps
+}
+  #create a new dataset that is equal to the original dataset but with the missing data filled in.
+activityDataNoNA<-activityData
+for(i in 1:nrow(activityDataNoNA)){
+  if(is.na(activityDataNoNA[i,]$steps)){
+    activityDataNoNA[i,]$steps <- getMeanStepsPerInterval(activityDataNoNA[i,]$interval)
+  }
+}
+
+  #make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day.
+totalStepsPerDayNoNA <- aggregate(steps ~ date, data=activityDataNoNA, sum)
+png("hist_of_total_number_of_steps.png")
+hist(totalStepsPerDayNoNA$steps)
+dev.off()
+
+meanStepsPerDayNoNA <- mean(totalStepsPerDayNoNA$steps)
+medianStepsPerDayNoNA <- median(totalStepsPerDayNoNA$steps)
+
+##Are there differences in activity patterns between weekdays and weekends?
+
+  #Create a new factor variable in the dataset with two levels – “weekday”
+activityDataNoNA$date <- as.Date(strptime(activityDataNoNA$date, format="%Y-%m-%d"))
+activityDataNoNA$day <- weekdays(activityDataNoNA$date)
+for (i in 1:nrow(activityDataNoNA)) {
+  if (activityDataNoNA[i,]$day %in% c("Saturday","Sunday")) {
+    activityDataNoNA[i,]$day<-"weekend"
+  }
+  else{
+    activityDataNoNA[i,]$day<-"weekday"
+  }
+}
+stepsByDay <- aggregate(activityDataNoNA$steps ~ activityDataNoNA$interval + activityDataNoNA$day, activityDataNoNA, mean)
+
+  #Make a panel plot containing a time series plot (i.e. 𝚝𝚢𝚙𝚎 = “𝚕”) of the 5-minute interval (x-axis) and the average number of steps taken,
+
+names(stepsByDay) <- c("interval", "day", "steps")
+library(lattice)
+png("panel_plot.png")
+xyplot(steps ~ interval | day, stepsByDay, type = "l", layout = c(1, 2), 
+       xlab = "Interval", ylab = "Number of steps")
+dev.off()
+
+
+
+
+
